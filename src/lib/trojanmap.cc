@@ -742,7 +742,7 @@ std::vector<std::string> TrojanMap::FindNearby(std::string attributesName, std::
   }
 
   for (auto loc :nearLoc) {
-    if (res.size() > k) {
+    if (res.size() >= k) {
       break;
     }
     
