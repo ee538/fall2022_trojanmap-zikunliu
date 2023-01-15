@@ -127,9 +127,11 @@ class TrojanMap {
   // path.)
   std::pair<double, std::vector<std::vector<std::string>>>
   TravelingTrojan_Brute_force(std::vector<std::string> location_ids);
-
+  std::vector<std::vector<std::string>> TravelingTrojan_Brute_force_helper(std::vector<std::string> &location_ids, int m);
+  
   std::pair<double, std::vector<std::vector<std::string>>>
   TravelingTrojan_Backtracking(std::vector<std::string> location_ids);
+  void backTrackTravelingTrojan(std::vector<std::string> &current, std::vector<std::string> &location_ids, std::pair<double, std::vector<std::vector<std::string>>> &record);
 
   std::pair<double, std::vector<std::vector<std::string>>> TravelingTrojan_2opt(
       std::vector<std::string> location_ids);

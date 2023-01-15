@@ -403,19 +403,134 @@ std::vector<std::string> TrojanMap::CalculateShortestPath_Bellman_Ford(
 std::pair<double, std::vector<std::vector<std::string>>> TrojanMap::TravelingTrojan_Brute_force(
                                     std::vector<std::string> location_ids) {
   std::pair<double, std::vector<std::vector<std::string>>> records;
+  records.first = INT_MAX;
+  std::string start = location_ids[0];
+  location_ids.erase(location_ids.begin());
+  records.second = TravelingTrojan_Brute_force_helper(location_ids, location_ids.size());
+  for (auto d : records.second) {
+    d.insert(d.begin(), start);
+    d.push_back(start);
+    double weight = CalculatePathLength(d);
+    if (weight < records.first) {
+      records.first = weight;
+      records.second.push_back(d);
+    }
+  }
+
   return records;
 }
+std::vector<std::vector<std::string>> TrojanMap::TravelingTrojan_Brute_force_helper(
+  std::vector<std::string> &location_ids, int m
+) {
+  std::vector<std::vector<std::string> > ret;
+	if (location_ids.size() < m)
+	{
+		return ret;
+	}
 
+	//递归出口，当递归到m=1时，就可以确定所有的集合
+	if (1 == m)
+	{
+		for (auto &item : location_ids)
+		{
+			std::vector<std::string> vtTemp;
+			vtTemp.push_back(item);
+			ret.push_back(vtTemp);
+		}
+		return ret;
+	}
+
+	for (auto it = location_ids.begin(); it != location_ids.end(); it++)
+	{
+		//取集合中的一个元素，然后让剩下的元素取m-1个元素进行全排，递归
+		std::vector<std::string> vtTemp;
+		//取当前元素的前面部分元素
+		if (it != location_ids.begin())
+		{
+			vtTemp.insert(vtTemp.end(), location_ids.begin(), it);
+		}
+		//取当前元素的后面部分
+		if (it + 1 != location_ids.end())
+		{
+			vtTemp.insert(vtTemp.end(), it + 1, location_ids.end());
+		}
+		std::vector<std::vector<std::string> > vtArrage = TravelingTrojan_Brute_force_helper(vtTemp, m - 1);//递归，分解问题
+		//把当前元素加入集合,并把集合加入结果集
+		for (auto &vtSet : vtArrage)
+		{
+			auto itInsert = ret.insert(ret.end(), vtSet);
+			itInsert->push_back(*it);//加入当前元素
+		}
+	}
+
+	return ret;
+}
 std::pair<double, std::vector<std::vector<std::string>>> TrojanMap::TravelingTrojan_Backtracking(
                                     std::vector<std::string> location_ids) {
   std::pair<double, std::vector<std::vector<std::string>>> records;
+  std::vector<std::string> current;
+  records.first = INT_MAX;
+  current.push_back(location_ids[0]);
+  backTrackTravelingTrojan(current, location_ids, records);
   return records;
 }
 
+void TrojanMap::backTrackTravelingTrojan(std::vector<std::string> &current, std::vector<std::string> &location_ids, std::pair<double, std::vector<std::vector<std::string>>> &records){
+  if (current.size() == location_ids.size()) {
+    current.push_back(location_ids.front());
+    double total = CalculatePathLength(current);
+    if (total < records.first) {
+      records.first = total;
+      records.second.push_back(current);
+    }
+    
+    current.pop_back();
+    return;
+  }
+
+  for (int i = 1; i < location_ids.size(); ++i) {
+    if (std::count(current.begin(), current.end(), location_ids[i])) {
+      continue;
+    }
+
+    current.push_back(location_ids[i]);
+    if (CalculatePathLength(current) >= records.first) {
+      current.pop_back();
+      continue;
+    }
+
+    backTrackTravelingTrojan(current, location_ids, records);
+    current.pop_back();
+  }
+}
 // Hint: https://en.wikipedia.org/wiki/2-opt
 std::pair<double, std::vector<std::vector<std::string>>> TrojanMap::TravelingTrojan_2opt(
       std::vector<std::string> location_ids){
   std::pair<double, std::vector<std::vector<std::string>>> records;
+  int size = location_ids.size() + 1;
+  int improve = 0;
+  location_ids.push_back(location_ids.front());
+  records.second.push_back(location_ids);
+  records.first = CalculatePathLength(location_ids);
+  while (improve < 10) {
+    for (int i = 1; i < size - 2; ++i) {
+      for (int k = i + 1; k < size - 1; ++k) {
+        std::vector<std::string> newRoute = location_ids;
+        int left = i, right = k;
+        std::reverse(newRoute.begin() + i, newRoute.begin() + k + 1);
+        double weight = CalculatePathLength(newRoute);
+        if (weight < records.first) {
+          records.first = weight;
+          records.second.push_back(newRoute);
+          improve = 0;
+          location_ids = newRoute;
+        }
+      }
+    }
+
+    improve++;
+  }
+
   return records;
 }
 
@@ -616,6 +731,27 @@ bool TrojanMap::ReachesACycleHelper(std::string start_node, std::unordered_map<s
  */
 std::vector<std::string> TrojanMap::FindNearby(std::string attributesName, std::string name, double r, int k) {
   std::vector<std::string> res;
+  std::set<std::pair<double, std::string>> nearLoc;
+  std::vector<std::string> allLoc = GetAllLocationsFromCategory(attributesName);
+  for (auto loc : allLoc) {
+    auto id = GetID(name);
+    if (id == loc) {
+      continue;
+    }
+    nearLoc.insert({CalculateDistance(id, loc), loc});
+  }
+
+  for (auto loc :nearLoc) {
+    if (res.size() > k) {
+      break;
+    }
+    
+    if (loc.first < r) {
+      res.push_back(loc.second);
+    }
+    
+  }
+
   return res;
 }
 
